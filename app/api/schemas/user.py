@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from typing import List
 
 class UserBase(BaseModel):
     username: str = Field(min_length=4, max_length=12)
@@ -16,5 +17,6 @@ class UserOut(UserBase):
 
 class UserInDB(UserBase):
     password: str
+    roles: str
 
     model_config = ConfigDict(from_attributes=True)

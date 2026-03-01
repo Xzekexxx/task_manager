@@ -1,11 +1,11 @@
 import jwt
-import datetime
 import bcrypt
 from typing import Annotated, Dict
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
 
 from app.core.config import get_settings
 from app.db.database import get_session
@@ -25,7 +25,10 @@ def create_jwt_token(data: Dict):
 
 def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[AsyncSession, Depends(get_session)]):
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-
+    expire = payload.get("exp")
+    expire_time = datetime.fromtimestamp(int(expire), tz=timezone.utc)
+    if (not expire) or (expire_time < datetime.now(timezone.utc)):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Токен истек")
     return payload.get("sub")
 
 async def get_current_user(username: str = Depends(get_user_from_token), db: AsyncSession = Depends(get_session)):
@@ -40,3 +43,5 @@ def hash_password(password: str):
 
 def validate_password(password: str, hashed_password: str):
     return bcrypt.checkpw(password.encode(), hashed_password.encode('utf-8'))
+
+

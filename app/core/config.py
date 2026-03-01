@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     DB_USER: str 
     DB_PASS: str 
     DB_NAME: str
+    ACCES_TOKEN_EXPIRE_MINUTES: int
+    SECRET_KEY: str
+    ALGORITHM: str
 
     @property
     def ASYNC_DATABASE_URL(self):

@@ -6,10 +6,8 @@ from sqlalchemy import select
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 
 from app.api.schemas.user import UserIn, UserOut, UserInDB
-from app.db.database import get_session
 from app.db.models import Users
 from app.core.security import hash_password, validate_password, create_jwt_token, get_current_user
-from app.core.rbac import PremissionChecker
 
 class AuthRep(ABC):
     @abstractmethod

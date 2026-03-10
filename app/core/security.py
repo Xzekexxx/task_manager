@@ -23,7 +23,7 @@ def create_jwt_token(data: Dict):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[AsyncSession, Depends(get_session)]):
+def get_user_from_token(token: Annotated[str, Depends(oauth2_scheme)]):
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     expire = payload.get("exp")
     expire_time = datetime.fromtimestamp(int(expire), tz=timezone.utc)

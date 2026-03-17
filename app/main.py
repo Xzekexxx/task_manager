@@ -1,20 +1,15 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-import asyncio
 
 from app.api.endpoints.auth import auth
 from app.api.endpoints.task import task
-from app.core.room_manager import listener
+from app.core.room_manager import room_manager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    future = asyncio.create_task(listener())
+    
     yield
-    future.cancel()
-    try:
-        await future
-    except asyncio.CancelledError:
-        pass
+    await room_manager.close()
 
 app = FastAPI(lifespan=lifespan)
 

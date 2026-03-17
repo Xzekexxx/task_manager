@@ -8,6 +8,7 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from app.api.schemas.user import UserIn, UserOut, UserInDB
 from app.db.models import Users
 from app.core.security import hash_password, validate_password, create_jwt_token, get_current_user
+from app.errors.auth import UserNotFound, UserAlreadyExists, InvalidCredentials
 
 class AuthRep(ABC):
     @abstractmethod
@@ -31,10 +32,11 @@ class SqlAlchemyAuthRep(AuthRep):
         self.db = session
 
     async def register_user(self, user_data: UserIn):
+    
         get_user_from_db = (await self.db.execute(select(Users).where(user_data.username==Users.username))).scalar_one_or_none()
 
         if get_user_from_db:
-            return {"error": "пользователь с таким именем уже существует"}
+            raise UserAlreadyExists(detail="User already exists")
 
         hashed_password = hash_password(user_data.password)
 
@@ -52,19 +54,19 @@ class SqlAlchemyAuthRep(AuthRep):
         return {"message": "You have registered successfully"}
     
     async def login_user(self, response: Response, user_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-        get_user_from_db = (await self.db.execute(select(Users).where(user_data.username==Users.username))).scalar_one_or_none()
-    
-        if not get_user_from_db:
-            return {"error": "Пользователь не найден"}
+        try:
+            get_user_from_db = (await self.db.execute(select(Users).where(user_data.username==Users.username))).scalar_one_or_none()
         
-        check_password = validate_password(user_data.password, get_user_from_db.password)
-        
-        if check_password:
-            token = create_jwt_token({'sub': user_data.username})
-            response.set_cookie(key="users_acces_token", value=token, httponly=True)
-            return {"access_token": token, "token_type": "bearer"}
-        else:
-            return {"error": "Неверный пароль"}
+            check_password = validate_password(user_data.password, get_user_from_db.password) 
+
+            if check_password and get_user_from_db:
+                token = create_jwt_token({'sub': user_data.username})
+                response.set_cookie(key="users_acces_token", value=token, httponly=True)
+                return {"access_token": token, "token_type": "bearer"}
+            else:
+                raise UserNotFound(detail="User was not found")
+        except:
+            raise InvalidCredentials(detail="Invalid credentials")
 
     async def about_user(self, current_user: Annotated[UserInDB, Depends(get_current_user)]):
         return {"username": current_user.username,
@@ -73,6 +75,10 @@ class SqlAlchemyAuthRep(AuthRep):
 
     async def del_user(self, username: str):
         user_from_db = (await self.db.execute(select(Users).where(Users.username==username))).scalar_one_or_none()
+        
+        if not user_from_db:
+            raise UserNotFound(detail="User was not found")
+        
         await self.db.delete(user_from_db)
         await self.db.commit()
         return {"message": "Пользователь успешно удален"}

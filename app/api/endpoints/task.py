@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated, List
 
@@ -6,8 +6,8 @@ from app.api.schemas.user import UserInDB
 from app.db.database import get_session
 from app.core.security import get_current_user
 from app.core.rbac import PremissionChecker
-from app.api.schemas.task import TaskOut, TaskCreate, TaskEvent
-from app.core.room_manager import room_manager, redis_client
+from app.api.schemas.task import TaskOut, TaskCreate
+from app.core.room_manager import room_manager
 from app.repositories.task_repository import SqlAlchemyTaskRep, TaskRep
 
 task = APIRouter(tags=["tasks"])
@@ -44,12 +44,12 @@ async def get_tasks(current_user: Annotated[UserInDB, Depends(get_current_user)]
 
 
 @task.put("/put_task/{task_id}/{room}", response_model=TaskOut)
-@PremissionChecker(["user"])
+@PremissionChecker(["admin"])
 async def put_task(task_id: int, task_data: TaskCreate, room: str, current_user: Annotated[UserInDB, Depends(get_current_user)], rep: Annotated[TaskRep, Depends(task_rep)]):
     return await rep.put_task(task_id, task_data, room, current_user)
 
 
 @task.delete("/del_task/{task_id}/{room}")
-@PremissionChecker(["user"])
+@PremissionChecker(["admin"])
 async def del_task(task_id: int, room: str, current_user: Annotated[UserInDB, Depends(get_current_user)], rep: Annotated[TaskRep, Depends(task_rep)]):
     return await rep.del_task(task_id, room, current_user)

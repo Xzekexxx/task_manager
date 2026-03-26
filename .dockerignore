@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+.pytest_cache
+venv
+env
+.venv
+.python
+
+.env
+postgres_data 
+
+.git
+.gitignore
+
+tests
+.pytest_cache
+pytest.ini

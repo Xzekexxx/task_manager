@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     ACCES_TOKEN_EXPIRE_MINUTES: int
     SECRET_KEY: str
     ALGORITHM: str
+    REDIS_HOST: str 
+    REDIS_PORT: int 
 
     @property
     def ASYNC_DATABASE_URL(self):

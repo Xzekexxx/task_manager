@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated, List
 
@@ -20,12 +20,22 @@ async def task_rep(db: Annotated[AsyncSession, Depends(get_session)]) -> TaskRep
 async def ws(room: str, ws: WebSocket):
     await ws.accept()
 
-    await room_manager.connect(room, ws)
-
     try:
+        data = await ws.receive_json()
+
+        token = data.get("token")
+
+        if not token:
+            await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        
+        await ws.send_json({"status": "authorized"})
+
+        if token:
+            await room_manager.connect(room, ws)
+
         while True:
             data = await ws.receive_json()
-
             if data["type"] == "ping":
                 await ws.send_json({"type": "pong"})
 

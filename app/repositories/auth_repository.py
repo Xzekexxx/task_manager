@@ -40,32 +40,49 @@ class SqlAlchemyAuthRep(AuthRep):
 
         hashed_password = hash_password(user_data.password)
 
-        create_user = Users(
-            username = user_data.username,
-            email = user_data.email,
-            password = hashed_password.decode('utf-8'),
-            roles = 'user'
-        )
+        if user_data.username=="admin":
 
-        self.db.add(create_user)
-        await self.db.commit()
-        await self.db.refresh(create_user)
 
-        return {"message": "You have registered successfully"}
+            create_user = Users(
+                username = user_data.username,
+                email = user_data.email,
+                password = hashed_password.decode('utf-8'),
+                roles = 'admin'
+            )
+
+            self.db.add(create_user)
+            await self.db.commit()
+            await self.db.refresh(create_user)
+
+            return {"message": "Admin have registered successfully"}
+        
+        else:
+            create_user = Users(
+                username = user_data.username,
+                email = user_data.email,
+                password = hashed_password.decode('utf-8'),
+                roles = 'user'
+            )
+
+            self.db.add(create_user)
+            await self.db.commit()
+            await self.db.refresh(create_user)
+
+            return {"message": "You have registered successfully"}
     
     async def login_user(self, response: Response, user_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-        try:
-            get_user_from_db = (await self.db.execute(select(Users).where(user_data.username==Users.username))).scalar_one_or_none()
-        
-            check_password = validate_password(user_data.password, get_user_from_db.password) 
+        get_user_from_db = (await self.db.execute(select(Users).where(user_data.username==Users.username))).scalar_one_or_none()
 
-            if check_password and get_user_from_db:
-                token = create_jwt_token({'sub': user_data.username})
-                response.set_cookie(key="users_acces_token", value=token, httponly=True)
-                return {"access_token": token, "token_type": "bearer"}
-            else:
-                raise UserNotFound(detail="User was not found")
-        except:
+        if not get_user_from_db:
+            raise UserNotFound(detail="User was not found")
+
+        check_password = validate_password(user_data.password, get_user_from_db.password)
+
+        if check_password:
+            token = create_jwt_token({'sub': user_data.username})
+            response.set_cookie(key="users_acces_token", value=token, httponly=True)
+            return {"access_token": token, "token_type": "bearer"}
+        else:
             raise InvalidCredentials(detail="Invalid credentials")
 
     async def about_user(self, current_user: Annotated[UserInDB, Depends(get_current_user)]):

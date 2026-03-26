@@ -57,7 +57,10 @@ class SqlAlchemyTaskRep(TaskRep):
 
     async def get_tasks(self) -> List[TaskOut]:
         tasks = (await self.db.execute(select(Tasks))).scalars().all()
-        return tasks
+        if tasks:
+            return tasks
+        else:
+            raise TaskNotFound(detail="No tasks have been created yet")
 
     async def put_task(self, task_id: int, task_data: TaskCreate, room: str, current_user: Annotated[UserInDB, Depends(get_current_user)]) -> TaskOut:
         
@@ -95,4 +98,4 @@ class SqlAlchemyTaskRep(TaskRep):
         
         await redis_client.publish(room, json.dumps(TaskEvent(event="deleted task", msg=f'{user} deleted the task').model_dump()))
 
-        return {"message": "задача успешно удалена"}
+        return {"message": "task deleted successfully"}

@@ -2,7 +2,13 @@ from fastapi import WebSocket
 import asyncio
 import redis.asyncio as redis
 
-redis_client = redis.from_url("redis://localhost")
+from app.core.config import get_settings
+
+settings = get_settings()
+
+REDIS_HOST = settings.REDIS_HOST
+REDIS_PORT = settings.REDIS_PORT
+redis_client = redis.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}")
 
 
 class Room_Manager():
